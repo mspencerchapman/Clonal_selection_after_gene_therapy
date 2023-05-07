@@ -1,0 +1,77 @@
+ID,mut_ref,Gene,variant_ID,Gene_type,COSMIC,FATHMM,VEP (SIFT/ Polyphen),Decision,Notes
+BCL002,10-112362733-G-A,SMC3,SMC3 p.D1150N,TSG,No,NA,NA,VUS,NA
+BCL002,11-116741090-C-T,SIK3,SIK3 p.E531K,TSG,No,No,deleterious_low_confidence/ probably_damaging,VUS,Hotspot mutation under selection in UK biobank analysis
+BCL002,11-118374597-G-A,KMT2A,KMT2A p.A2664T,Oncogene; fusion,NA,NA,NA,VUS,NA
+BCL002,15-42003129-A-G,MGA,MGA p.H889R,TSG,No,NA,NA,VUS,NA
+BCL002,15-90631620-C-T,IDH2,IDH2 p.V217M,Oncogene,No,NA,NA,VUS,Mainly hotspots - R172H or R140
+BCL002,17-40462572-C-T,STAT5A,STAT5A p.T757I,Oncogene; TSG; fusion,No,NA,NA,VUS,NA
+BCL002,17-58740749-C-T,PPM1D,PPM1D p.R552*,TSG,Yes_21,NA,NA,Probable,NA
+BCL002,17-7577120-C-T,TP53,TP53 p.R273H,TSG,Yes_1269,Pathogenic (score 1.00),NA,Probable,NA
+BCL002,2-25464570-A-C,DNMT3A,DNMT3A p.L648R,TSG,No,NA,NA,Probable,Neibouring nonsense mutations in COSMIC
+BCL002,20-31388105-G-A,DNMT3B,DNMT3B p.?,TSG,NA,NA,NA,VUS,NA
+BCL002,20-31390263-C-T,DNMT3B,DNMT3B p.P740S,TSG,No,NA,NA,VUS,NA
+BCL002,22-41489009-A-G,EP300,EP300 p.M1V,TSG; fusion,No,NA,NA,VUS,NA
+BCL002,22-41564575-G-A,EP300,EP300 p.V1333M,TSG; fusion,Yes_1,Pathogenic (score 1.00),deleterious/ probably_damaging,VUS,COSMIC mutation found in the eye
+BCL002,3-105422906-C-T,CBLB,CBLB p.V507M,TSG,NA,NA,NA,VUS,NA
+BCL002,3-128204837-C-T,GATA2,GATA2 p.A202T,Oncogene,No,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL002,4-55573378-A-T,KIT,KIT p.Q347L,Oncogene,No,NA,NA,VUS,Mainly hotspots at D816. Other COSMIC mutation at same site FATTHM neutral (0.34)
+BCL002,5-1294576-C-T,TERT,TERT p.R142H,Oncogene,No,NA,NA,VUS,Other mutations at same site in COSMIC are FATTHM neutral (score 0.12)
+BCL002,5-35873751-G-A,IL7R,IL7R p.?,NA,NA,NA,NA,VUS,NA
+BCL002,7-148508719-C-T,EZH2,EZH2 p.E649K,TSG; oncogene,No,NA,deleterious/ benign,Possible,"lots of mutations around 600 - 700 region, many in haematolymphoid cancers, predicted pathogenic"
+BCL002,7-55221804-G-A,EGFR,EGFR p.G283D,Oncogene,No,NA,NA,VUS,NA
+BCL002,9-139417482-G-C,NOTCH1,NOTCH1 p.L188V,TSG,No,NA,tolerated/ benign,VUS,Hotspots at G193 and T194
+BCL002,9-21971028-C-T,CDKN2A,CDKN2A p.W110*,TSG,Yes_192,NA,NA,Probable,Primarily in pancreatic cancer and melanoma
+BCL002,X-123227894-A-T,STAG2,STAG2 p.D1202V,TSG,No,NA,deleterious_low_confidence/ possibly_damaging,VUS,NA
+BCL003,11-118373953-T-G,KMT2A,KMT2A p.F2449C,Oncogene; fusion,NA,NA,NA,VUS,NA
+BCL003,12-46245535-T-C,ARID2,ARID2 p.V1210A,TSG,Yes_1,Pathogenic (score 0.75,NA,VUS,Single mutation in COSMIC found in lung
+BCL003,14-75231066-G-A,YLPM1,YLPM1 p.?,NA,NA,NA,NA,VUS,Reported mutations are predominantly truncating
+BCL003,16-67655479-C-G,CTCF,CTCF p.R448G,TSG,No,NA,NA,VUS,"R338 is hotspot mutation, but mainly nonsense & some R448Q. These are all pathogenic.Some cases in haematolymphoid."
+BCL003,16-81953097-G-A,PLCG2,PLCG2 p.G688D,NA,Yes_1,Pathogenic (score 0.96),NA,VUS,Single mutation in COSMIC found in large intestine
+BCL003,17-1554232-T-C,PRPF8,PRPF8 p.N2291S,TSG,No,NA,NA,VUS,NA
+BCL003,17-29557392-G-A,NF1,NF1 p.M1035I,Oncogene,NA,NA,NA,VUS,NA
+BCL003,18-42281342-C-T,SETBP1,SETBP1 p.R11W,Oncogene; fusion,NA,NA,NA,VUS,Mainly hotspot mutations in haematopoietic cancers
+BCL003,18-42530173-G-A,SETBP1,SETBP1 p.A290T,Oncogene; fusion,NA,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL003,18-42643548-C-T,SETBP1,SETBP1 p.A1559V,Oncogene; fusion,NA,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL003,4-55138597-A-T,PDGFRA,PDGFRA p.H425L,NA,NA,NA,NA,VUS,NA
+BCL003,6-43316255-C-T,ZNF318,ZNF318 p.R960Q,TSG,NA,NA,NA,VUS,Reported mutations are predominantly truncating
+BCL003,6-43320199-C-G,ZNF318,ZNF318 p.E896Q,TSG,NA,NA,NA,VUS,Reported mutations are predominantly truncating
+BCL003,6-79650865-G-C,PHIP,PHIP p.P1671A,NA,NA,NA,NA,VUS,NA
+BCL003,6-79787767-C-T,PHIP,PHIP p.G7S,NA,NA,NA,NA,VUS,NA
+BCL003,7-148512045-G-A,EZH2,EZH2 p.Q545*,TSG; oncogene,Yes_2,Pathogenic (score 0.97),NA,Possible,"2 mutations at this site, one in haematolymphoid cancer"
+BCL003,7-55211097-G-A,EGFR,EGFR p.E114K,Oncogene,NA,NA,NA,VUS,NA
+BCL003,7-55225427-C-T,EGFR,EGFR p.R427C,Oncogene,NA,NA,NA,VUS,NA
+BCL003,7-55272969-C-G,EGFR,EGFR p.P1098A,Oncogene,NA,NA,NA,VUS,NA
+BCL003,8-128752788-G-A,MYC,MYC p.V317I,Oncogene,No,NA,NA,VUS,NA
+BCL003,15-42042333-AC-A,MGA,MGA p.H2177fs*2,TSG,No,NA,NA,Possible,NA
+BCL004,10-112361838-C-T,SMC3,SMC3 p.R1003C,TSG,No,NA,NA,VUS,NA
+BCL004,10-123260396-C-T,FGFR2,FGFR2 p.G503E,Oncogene; fusion,No,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL004,11-116741090-C-A,SIK3,SIK3 p.E531*,TSG,No,NA,NA,Probable,Found as hotspot in UK biobank data
+BCL004,11-116767923-T-G,SIK3,SIK3 p.K185Q,TSG,No,NA,tolerated/ probably_damaging,VUS,NA
+BCL004,15-42003341-G-C,MGA,MGA p.D960H,TSG,No,NA,NA,VUS,NA
+BCL004,17-29661984-A-C,NF1,NF1 p.M1981L,Oncogene,No,NA,NA,VUS,"M1981V mutation in COSMIC x 1, FATTHM pathogenic (score = 0.98)"
+BCL004,18-42531451-A-C,SETBP1,SETBP1 p.S716R,Oncogene; fusion,NA,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL004,19-45285631-G-A,CBLC,CBLC p.W221*,TSG,NA,NA,NA,Possible,NA
+BCL004,2-198266566-A-G,SF3B1,SF3B1 p.M757T,Oncogene,Yes_1,Pathogenic (score 0.99),NA,VUS,Mainly hotspot mutations in cancer
+BCL004,2-29754779-A-C,ALK,ALK p.?,Oncogene; fusion,NA,NA,NA,VUS,NA
+BCL004,4-1920238-G-A,WHSC1,WHSC1 p.R433K,Oncogene; fusion,No,NA,NA,VUS,Also known as NSD2
+BCL004,5-131931342-G-A,RAD50,RAD50 p.V683I,TSG,Yes_3,Pathogenic (score 0.99),deleterious/ benign,VUS,"COSMIC cases are in endometrium, large intestine and stomach"
+BCL004,7-148507436-T-A,EZH2,EZH2 p.N673I,TSG; oncogene,No,NA,deleterious/ probably_damaging,Possible,"Hotspot site at Y646; lots of mutations around 600 - 700 region, many in haematolymphoid cancers, predicted pathogenic"
+BCL004,7-55273279-C-T,EGFR,EGFR p.A1201V,Oncogene,Yes_3,Pathogenic (score 0.82),NA,VUS,"Mainly hotspot mutations in cancer. COSMIC mutations are in colon, endometrium and breast"
+BCL004,X-76845307-T-C,ATRX,ATRX p.K2072E,TSG,No,NA,NA,VUS,Other mutations at same site are FATTHM pathogenic 0.98
+BCL004,2-29451909-T-TA,ALK,ALK p.N886fs*1,Oncogene; fusion,No,NA,NA,VUS,NA
+BCL006,12-111856557-A-G,SH2B3,SH2B3 p.Y203C,NA,NA,NA,NA,VUS,NA
+BCL006,17-40359611-T-C,STAT5B,STAT5B p.K681R,oncogene; TSG; fusion,No,NA,NA,VUS,NA
+BCL006,4-106196361-C-A,TET2,TET2 p.S1565Y,TSG,No,NA,NA,Possible,Nearby mutations are predicted pathogenic
+BCL006,4-55133754-C-A,PDGFRA,PDGFRA p.Q323K,NA,NA,NA,NA,VUS,NA
+BCL006,X-129156941-G-A,BCORL1,BCORL1 p.R1226H,TSG,Yes_1,Pathogenic (score 0.97),NA,VUS,Single mutation in COSMIC found in endometrium
+BCL006,X-140984890-A-C,MAGEC3,MAGEC3 p.E449A,NA,No,NA,NA,VUS,NA
+BCL008,2-29449853-C-T,ALK,ALK p.S1001N,Oncogene; fusion,Yes_1,Pathogenic (score 0.78),NA,VUS,Single mutation in COSMIC found in skin cancer
+BCL008,20-57429995-C-T,GNAS,GNAS p.R559C,Oncogene,No,NA,NA,VUS,"Mainly hotspot mutations in cancer, other mutations at same site FATTHM neutral"
+BCL008,21-36252866-G-C,RUNX1,RUNX1 p.R166G,oncogene; TSG; fusion,Yes_13,Pathogenic (0.88),NA,Probably,Hotspot site with multiple mutations in cancer
+BCL008,4-153258959-T-C,FBXW7,FBXW7 p.K286E,TSG,No,NA,tolerated/ benign,VUS,"3 mutations at E287, mainly in intestine"
+BCL008,7-101918598-C-T,CUX1,CUX1 p.R511C,oncogene; TSG,NA,NA,NA,VUS,NA
+BCL009,1-120480497-A-G,NOTCH2,NOTCH2 p.I1107T,Oncogene; TSG,No,NA,NA,VUS,NA
+BCL009,10-112360267-A-G,SMC3,SMC3 p.N833S,TSG,Yes_1,Pathogenic (score 0.96),NA,VUS,One case in malignant melanoma
+BCL009,11-118374880-T-C,KMT2A,KMT2A p.I2758T,Oncogene; fusion,NA,NA,NA,VUS,NA
+BCL009,18-42532882-G-A,SETBP1,SETBP1 p.A1193T,Oncogene; fusion,NA,NA,NA,VUS,Mainly hotspot mutations in cancer
+BCL009,4-1957778-T-C,WHSC1,WHSC1 p.I915T,Oncogene; fusion,No,NA,NA,VUS,Also known as NSD2

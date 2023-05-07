@@ -1,0 +1,248 @@
+---
+title: "Linear Mixed Effects Model:  Mutation burden correlation with Age and Sickle disease status"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lme4)
+
+my_theme<-theme(text = element_text(family="Helvetica"),
+                axis.text = element_text(size = 5),
+                axis.title = element_text(size=7),
+                legend.text = element_text(size=5),
+                legend.title = element_text(size=7),
+                strip.text = element_text(size=7),
+                legend.spacing = unit(1,"mm"),
+                legend.key.size= unit(5,"mm"))
+plots_dir="~/R_work/Gene_therapy/plots_NEJM/"
+```
+
+## R Markdown
+
+Import the mutation burden/ age data
+
+```{r import data}
+GT_sample_metadata<-readRDS("~/R_work/Gene_therapy/Gene_therapy_for_SCD_NEJM/Data/sample_metadata_full_with_sigs.Rds")
+EM_sample_metadata<-read.csv("~/R_work/Mitochondrial_analysis/EM_sample_level_metadata.csv")
+
+combined_df<-bind_rows(GT_sample_metadata%>%
+            filter(!is.na(SNV_burden_AR)&Time_point==0)%>%
+            dplyr::select(new_ID,Age_at_GT,Sample,SNV_burden_AR,SNV_burden_invitro_removed,INDEL_burden_AR)%>%
+            mutate(Disease_status="SCD")%>%
+            dplyr::rename("ID"=new_ID,"Age"=Age_at_GT,"SNV_burden_adj"=SNV_burden_AR,"INDEL_burden_adj"=INDEL_burden_AR),
+          EM_sample_metadata%>%
+            dplyr::select(donor_id,age,PDID,sub_adj,indel_adj)%>%
+            mutate(Disease_status="Healthy")%>%
+            dplyr::rename("Age"=age,"ID"=donor_id,"Sample"=PDID,"SNV_burden_adj"=sub_adj,"INDEL_burden_adj"=indel_adj)%>%
+            mutate(SNV_burden_invitro_removed=SNV_burden_adj)
+            )
+head(combined_df)
+```
+
+## View data on plot with linear regression lines for each category
+
+Plot
+
+```{r , echo=FALSE}
+cols=RColorBrewer::brewer.pal(3,"Dark2")
+base_plot<-combined_df%>%
+  ggplot(aes(x=Age,y=SNV_burden_adj,col=Disease_status))+
+  geom_jitter(width=0.25,height=0,alpha=0.25,size=0.5)+
+  theme_classic()+
+  scale_color_manual(values=cols)+
+  labs(x="Age",y="SNV burden (adjusted)",col="Disease\nstatus")+
+  my_theme
+
+base_plot+geom_smooth(method="lm",size=0.5)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Experiment with linear models
+
+Modeling including age only
+
+```{r}
+lmer.age_only <- lmer(SNV_burden_adj ~ Age + (1|ID), data = combined_df)
+summary(lmer.age_only)
+
+p.1<-base_plot+geom_abline(intercept = lmer.age_only@beta[1],slope = lmer.age_only@beta[2])+theme(legend.position = "none")
+ggsave(filename=paste0(plots_dir,"lmer_ageonly.pdf"),p.1,width = 2,height=2)
+
+```
+
+Model including age and disease (without any interaction)
+
+```{r}
+lmer.age_and_disease <- lmer(SNV_burden_adj ~ Age + Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease)
+
+p.2<-base_plot+
+  geom_abline(intercept=lmer.age_and_disease@beta[1],slope=lmer.age_and_disease@beta[2],col=cols[1])+
+  geom_abline(intercept=lmer.age_and_disease@beta[1]+lmer.age_and_disease@beta[3],slope=lmer.age_and_disease@beta[2],col=cols[2])+theme(legend.position = "none")
+ggsave(filename=paste0(plots_dir,"lmer_age_disease_fixed.pdf"),p.2,width = 2,height=2)
+```
+
+
+Now test for significance of individual SCD patients versus normal by testing each SCD individual together with all the healthy individuals. Here the "Disease_status" term actually refers to the single patient.
+Getting p-values is more straight-forward with the lme function from nlme package.
+
+```{r}
+all_individual_lmer_list<-lapply(paste0("SCD",1:6),function(test_ID){
+  lmer.indidividual=nlme::lme(SNV_burden_adj ~ Age + Disease_status, data = combined_df%>%filter(Disease_status=="Healthy"|ID==test_ID),random = ~ 1|ID)
+  return(lmer.indidividual)
+})
+all_lmer_summaries<-lapply(all_individual_lmer_list,summary)
+summary_df<-dplyr::bind_rows(lapply(all_lmer_summaries,function(list) list$tTable["Disease_statusSCD",]))%>%
+  mutate(CI_lower=Value-1.96*Std.Error,CI_upper=Value+1.96*Std.Error)%>%
+  mutate(ID=paste0("SCD",1:6),.before=1)
+print(summary_df)
+
+```
+
+Model including age + an age:disease interaction term only
+
+```{r}
+lmer.age_and_disease_int <- lmer(SNV_burden_adj ~ Age + Age:Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_int)
+confint(lmer.age_and_disease_int)
+
+m1 <- nlme::lme(SNV_burden_adj~Age + Age:Disease_status,random=~1|ID,data=combined_df)
+anova(m1)
+
+p.3<-base_plot+
+  geom_abline(intercept=lmer.age_and_disease_int@beta[1],slope=lmer.age_and_disease_int@beta[2],col=cols[1])+
+  geom_abline(intercept=lmer.age_and_disease_int@beta[1],slope=lmer.age_and_disease_int@beta[2]+lmer.age_and_disease_int@beta[3],col=cols[2])
+ggsave(filename=paste0(plots_dir,"lmer_age_disease_int.pdf"),p.3,width = 3,height=2)
+```
+
+Model including age + disease + an age:disease interaction term
+
+```{r}
+lmer.age_and_disease_plus_int <- lmer(SNV_burden_adj ~ Age*Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_plus_int)
+```
+
+##DO THE SAME WITH THE 'IN VITRO REMOVED' VALUES
+
+## View data on plot with linear regression lines for each category
+
+Plot
+
+```{r , echo=FALSE}
+combined_df%>%
+  ggplot(aes(x=Age,y=SNV_burden_invitro_removed,col=Disease_status))+
+  geom_jitter(width=0.25,height=0,alpha=0.25,size=0.5)+
+  theme_classic()+
+  geom_smooth(method="lm",size=0.5)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Experiment with linear models
+
+Modeling including age only
+
+```{r}
+lmer.age_only.ivr <- lmer(SNV_burden_invitro_removed ~ Age + (1|ID), data = combined_df)
+summary(lmer.age_only.ivr)
+
+```
+
+Model including age and disease (without any interaction)
+
+```{r}
+lmer.age_and_disease.ivr <- lmer(SNV_burden_invitro_removed ~ Age + Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease.ivr)
+
+```
+
+Now test for significance of individual SCD patients versus normal by testing each SCD individual together with all the healthy individuals. Here the "Disease_status" term actually refers to the single patient.
+Getting p-values is more straight-forward with the lme function from nlme package.
+
+```{r}
+all_individual_lmer_list.ivr<-lapply(paste0("SCD",1:6),function(test_ID){
+  lmer.indidividual=nlme::lme(SNV_burden_invitro_removed ~ Age + Disease_status, data = combined_df%>%filter(Disease_status=="Healthy"|ID==test_ID),random = ~ 1|ID)
+  return(lmer.indidividual)
+})
+all_lmer_summaries.ivr<-lapply(all_individual_lmer_list.ivr,summary)
+summary_df.ivr<-dplyr::bind_rows(lapply(all_lmer_summaries.ivr,function(list) list$tTable["Disease_statusSCD",]))%>%
+  mutate(CI_lower=Value-1.96*Std.Error,CI_upper=Value+1.96*Std.Error)%>%
+  mutate(ID=paste0("SCD",1:6),.before=1)
+print(summary_df.ivr)
+
+```
+
+Model including age + an age:disease interaction term only
+
+```{r}
+lmer.age_and_disease_int.ivr <- lmer(SNV_burden_invitro_removed ~ Age + Age:Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_int.ivr)
+
+```
+
+Model including age + disease + an age:disease interaction term
+
+```{r}
+lmer.age_and_disease_plus_int.ivr <- lmer(SNV_burden_invitro_removed ~ Age*Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_plus_int.ivr)
+```
+
+##NOW DO THE SAME FOR INDELS
+
+```{r , echo=FALSE}
+combined_df%>%
+  ggplot(aes(x=Age,y=INDEL_burden_adj,col=Disease_status))+
+  geom_jitter(width=0.25,height=0,alpha=0.25,size=0.5)+
+  theme_classic()+
+  geom_smooth(method="lm",size=0.5)
+```
+
+Modeling including age only
+
+```{r}
+lmer.age_only.indel <- lmer(INDEL_burden_adj ~ Age + (1|ID), data = combined_df)
+summary(lmer.age_only.indel)
+
+```
+
+Model including age and disease (without any interaction)
+
+```{r}
+lmer.age_and_disease.indel <- lmer(INDEL_burden_adj ~ Age + Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease.indel)
+
+```
+Model including age and disease (without any interaction), but applied to each individual in term to see if they have significant differences individually
+
+```{r}
+all_individual_lmer_list.indel<-lapply(paste0("SCD",1:6),function(test_ID){
+  lmer.indidividual=nlme::lme(INDEL_burden_adj ~ Age + Disease_status, data = combined_df%>%filter(Disease_status=="Healthy"|ID==test_ID),random = ~ 1|ID)
+  return(lmer.indidividual)
+})
+all_lmer_summaries.indel<-lapply(all_individual_lmer_list.indel,summary)
+summary_df.indel<-dplyr::bind_rows(lapply(all_lmer_summaries.indel,function(list) list$tTable["Disease_statusSCD",]))%>%
+  mutate(CI_lower=Value-1.96*Std.Error,CI_upper=Value+1.96*Std.Error)%>%
+  mutate(ID=paste0("SCD",1:6),.before=1)
+print(summary_df.indel)
+
+```
+
+Model including age + an age:disease interaction term only
+
+```{r}
+lmer.age_and_disease_int.indel <- lmer(INDEL_burden_adj ~ Age + Age:Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_int.indel)
+
+```
+
+Model including age + disease + an age:disease interaction term
+
+```{r}
+lmer.age_and_disease_plus_int.indel <- lmer(INDEL_burden_adj ~ Age*Disease_status + (1|ID), data = combined_df)
+summary(lmer.age_and_disease_plus_int.indel)
+```

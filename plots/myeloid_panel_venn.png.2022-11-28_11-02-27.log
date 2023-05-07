@@ -1,0 +1,14 @@
+INFO [2022-11-28 11:02:27] $x
+INFO [2022-11-28 11:02:27] list(myeloid_panel_bolton, myeloid_panel_boston, myeloid_panel_illumina, 
+INFO [2022-11-28 11:02:27]     all_ukbb_CH)
+INFO [2022-11-28 11:02:27] 
+INFO [2022-11-28 11:02:27] $category.names
+INFO [2022-11-28 11:02:27] c("Bolton et al.\nmyeloid panel", "Boston haem.\nmalig. panel", 
+INFO [2022-11-28 11:02:27]     "Illumina TruSight\nmyeloid panel", "UK biobank\ndNdS analysis")
+INFO [2022-11-28 11:02:27] 
+INFO [2022-11-28 11:02:27] $filename
+INFO [2022-11-28 11:02:27] paste0(plots_dir, "myeloid_panel_venn.png")
+INFO [2022-11-28 11:02:27] 
+INFO [2022-11-28 11:02:27] $output
+INFO [2022-11-28 11:02:27] T
+INFO [2022-11-28 11:02:27] 
