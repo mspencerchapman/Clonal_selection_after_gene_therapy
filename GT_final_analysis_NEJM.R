@@ -1,5 +1,3 @@
-##------------------------------ANALYSIS-----------------------------
-
 #This script goes through several key areas of the analysis
 #1. Data summary/ technical aspects
 #2. SNV Mutation burdens
@@ -9,9 +7,76 @@
 #6. Driver mutation landscape
 #7. dN/dS - for evidence of positive selection
 #8. Vector copy number
-root_dir="~/R_work/Gene_therapy/Gene_therapy_for_SCD_NEJM"
-setwd(root_dir)
+
+#----------------------------------
+# Load packages (and install if they are not installed yet)
+#----------------------------------
+cran_packages=c("ggplot2","dplyr","stringr","readr","tidyr","RColorBrewer","tibble","ape","phangorn","phytools","dichromat","seqinr","devtools","lmerTest")
+bioconductor_packages=c("MutationalPatterns","BSgenome","BSgenome.Hsapiens.UCSC.hg19","TxDb.Hsapiens.UCSC.hg19.knownGene")
+
+for(package in cran_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    install.packages(as.character(package),repos = "http://cran.us.r-project.org")
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+if (!require("BiocManager", quietly = T, warn.conflicts = F))
+  install.packages("BiocManager")
+for(package in bioconductor_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    BiocManager::install(as.character(package))
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+if(!require("treemut", character.only=T,quietly = T, warn.conflicts = F)){
+  install_git("https://github.com/NickWilliamsSanger/treemut")
+  library("treemut",character.only=T,quietly = T, warn.conflicts = F)
+}
+if(!require("hdp", character.only=T,quietly = T, warn.conflicts = F)){
+  devtools::install_github("nicolaroberts/hdp", build_vignettes = F)
+  library("hdp",character.only=T,quietly = T, warn.conflicts = F)
+}
+if(!require("dndscv", character.only=T,quietly = T, warn.conflicts = F)){
+  devtools::install_github("im3sanger/dndscv")
+  library("dndscv",character.only=T,quietly = T, warn.conflicts = F)
+}
+
+#----------------------------------
+# Set the ggplot2 theme for plotting
+#----------------------------------
+
+my_theme<-theme(text = element_text(family="Helvetica"),
+                axis.text = element_text(size = 5),
+                axis.title = element_text(size=7),
+                legend.text = element_text(size=5),
+                legend.title = element_text(size=7),
+                strip.text = element_text(size=7),
+                legend.spacing = unit(1,"mm"),
+                legend.key.size= unit(5,"mm"))
+
+#----------------------------------
+# Set file paths and import data
+#----------------------------------
+
+#Define paths for the script
+root_dir<-"~/R_work/Clonal_selection_after_gene_therapy/"
+source(paste0(root_dir,"/Data/GT_functions.R"))
+reference_dir="~/Google Drive File Stream/My Drive/Reference_files/"
+vcf_header_path=paste0(reference_dir,"vcfHeader.txt")
 plots_dir=paste0(root_dir,"/plots/")
+local_ref=paste0(reference_dir,"genome.fa")
+lustre_ref="/nfs/cancer_ref02/human/GRCh37d5/genome.fa"
+vcf_dir=paste0(root_dir,"/Data/VCFs/")
+
+#Manually enter the individual-level metadata data frame
+exp_IDs<-c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009")
+Individual_metadata=data.frame(ID=exp_IDs,
+                               new_ID=c("SCD4","SCD6","SCD5","SCD3","SCD1","SCD2"),
+                               Disease=rep("SCD",6),
+                               Age_at_GT=c(20,26,24,16,7,13),
+                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"))
+
+setwd(root_dir)
 #sample_metadata<-read_delim(paste0(root_dir,"/Data/sample_metadata_full.tsv"))
 sample_metadata<-readRDS(paste0(root_dir,"/Data/sample_metadata_full_with_sigs.Rds"))
 all_tree_data=readRDS(paste0(root_dir,"/Data/combined_tree_files.Rds"))
@@ -21,15 +86,7 @@ all_mut_data=readRDS(paste0(root_dir,"/Data/combined_muts_files.Rds"))
 for(x in names(all_tree_data)) {assign(x,all_tree_data[[x]])}
 for(x in names(all_mut_data)) {assign(x,all_mut_data[[x]])}
 
-#Manually enter the individual-level metadata data frame
-exp_IDs<-c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009")
-Individual_metadata=data.frame(ID=exp_IDs,
-                               new_ID=c("SCD4","SCD6","SCD5","SCD3","SCD1","SCD2"),
-                               Disease=rep("SCD",6),
-                               Age_at_GT=c(20,26,24,16,7,13),
-                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"),
-                               CD34_dose=c(5.07,NA,5.15,8.26,4.86,3.55))
-
+#Set the colour scheme for when colour by patient
 patient_cols<-RColorBrewer::brewer.pal(7,"Set1")[c(1:5,7)]
 names(patient_cols)<-paste0("SCD",1:6)
 
@@ -62,19 +119,6 @@ sample_metadata%>%
   group_by(new_ID,HSPC_source,Sample_type,Time_point)%>%
   summarise(n=n())
 
-#Review relationship between clonality ('peak VAF') and mutation burden
-sample_metadata%>%
-  filter(!is.na(peak_vaf) & !is.na(SNV_burden_AR))%>%
-  filter(Coverage>8)%>%
-  ggplot(aes(x=peak_vaf,y=SNV_burden_AR,col=ID))+
-  geom_point(alpha=0.3,size=0.3)+
-  scale_x_continuous(limits=c(0.3,0.7))+
-  scale_y_continuous(limits=c(50,700))+
-  facet_grid(Time_point~ID)+
-  theme_bw()+
-  geom_smooth(method="lm",col="black",size=0.2)+
-  my_theme
-
 #Summarize the outcomes of colonies by individual
 colony_outcome_summary_plot<-sample_metadata%>%
   filter(sample_status!="Not Sequenced")%>%
@@ -91,6 +135,7 @@ colony_outcome_summary_plot<-sample_metadata%>%
 
 ggsave(filename = paste0(plots_dir,"colony_outcome_summary.pdf"),colony_outcome_summary_plot,width=3.5,height=2.5)
 
+#Print the overall outcomes of colonies across all individuals
 sample_metadata%>%
   mutate(sample_status=factor(sample_status,levels=rev(c("PASS","Low coverage","Not Sequenced","Non-clonal","Duplicate"))))%>%
   filter(sample_status!="Not Sequenced")%>%
@@ -102,6 +147,8 @@ sample_metadata%>%
 ##########################################################################
 
 #First look at the pre-GT SNV burdens and compare to reference data set
+#For this, need to use the asymptotic regression method of mutation burden correction
+# (as this was the method used in Mitchell et al, 2022)
 
 #This is the regression from Mitchell et al, 2022
 HSC_prediction=function(age){
@@ -162,40 +209,11 @@ ggsave(filename = paste0(plots_dir,"preGT_mut_burden.pdf"),preGT_mut_burden_plot
 
 mut_burden_summary%>%filter(Time_point==0)
 
-#Do a plot where all attempts have been made to remove invitro mutations
-#(by refitting signatures to samples & removing all putative invitro signature mutations)
-sample_metadata%>%
-  ggplot(aes(x=SNV_burden_AR,y=SNV_burden_invitro_removed,col=new_ID))+
-  geom_point(size=0.1,alpha=0.5)+
-  scale_color_manual(values=patient_cols)+
-  theme_classic()+
-  labs(x="SNV burden (corrected)",
-       y="SNV burden\n(in vitro signatures removed)",
-       col="Individual")
 
-preGT_mut_burden_invitro_removed_plot<-sample_metadata%>%
-  dplyr::filter(!is.na(SNV_burden_invitro_removed))%>%
-  dplyr::filter(Coverage>Coverage_cutoff_for_mutburden_analysis & peak_vaf>Peak_vaf_cutoff_for_mutburden_analysis)%>%
-  dplyr::filter(Disease=="SCD" & Time_point==0 & Sample_type!="DP")%>%
-  mutate(Age_at_sampling=(Time_point+Age_at_GT))%>%
-  ggplot(aes(x=Age_at_sampling,y=SNV_burden_invitro_removed,col=new_ID))+
-  geom_jitter(height=0,width=0.15,alpha=0.1,size=0.3)+
-  scale_y_continuous(limits=function(x) c(0,750))+
-  scale_x_continuous(limits=function(x) c(0,x[2]))+
-  scale_color_manual(values=patient_cols)+
-  geom_abline(intercept = 54.6,slope = 16.8,size=0.3)+
-  geom_ribbon(data=lm.data,aes(x=x,ymin=ymin, ymax=ymax),fill="darkgrey",alpha=0.7,inherit.aes = F)+
-  geom_point(data=mut_burden_summary%>%filter(Disease=="SCD",Time_point==0),aes(x=Age_at_sampling,y=mean_SNV_burden_invitro_removed),shape=3,size=1,inherit.aes = F)+
-  guides(colour = guide_legend(override.aes = list(alpha = 1,size=1)))+
-  theme_bw()+
-  labs(x="Age at sampling",
-       y="Single nucleotide variant burden\n(corrected for invitro mutations)",
-       col="Individual")+
-  my_theme
+#----------------------------------
+# REVIEW IF ANY RELATIONSHIP BETWEEN VCN and MUTATION BURDEN
+#----------------------------------
 
-ggsave(filename = paste0(plots_dir,"preGT_mut_burden_invitro_removed.pdf"),preGT_mut_burden_invitro_removed_plot,width=3,height=2)
-
-### REVIEW IF ANY RELATIONSHIP BETWEEN VCN and MUTATION BURDEN
 sample_metadata%>%
   filter(Sample_type=="Post-GT")%>%
   ggplot(aes(x=VCN_rounded,y=get(SNV_metric_for_mutburden_analysis),col=new_ID))+
@@ -237,7 +255,9 @@ transduced_vs_nontransduced_plot<-sample_metadata%>%
 
 ggsave(filename = paste0(plots_dir,"SNV_burden_transduced_vs_nontransduced_plot.pdf"),plot=transduced_vs_nontransduced_plot,width=2,height=2)
 
-### COMPARISON OF PRE- and POST-GENE THERAPY
+#----------------------------------
+# COMPARISON OF PRE- and POST-GENE THERAPY
+#----------------------------------
 
 #Perform mutation burden comparisons only using the higher coverage samples with best evidence of clonality
 SNV_metric_for_mutburden_analysis="SNV_burden_tc"
@@ -342,13 +362,6 @@ gt_induced_mutations_estimate_plot<-Map(test=t.test.all,exp_ID=paste0("SCD",1:6)
   theme(legend.box.spacing=unit(0,"mm"),legend.key.size = unit(3,"mm"),axis.text.x=element_text(angle=90))
 
 ggsave(paste0(plots_dir,"gt_induced_mutations.pdf"),plot=gt_induced_mutations_estimate_plot,width=1.8,height=2)
-
-#Histograms of mutation burdens pre & post
-sample_metadata%>%
-  dplyr::filter(!is.na(get(SNV_metric_for_mutburden_analysis)) & new_ID%in%c("SCD3","SCD4") & Coverage>10 &peak_vaf>Peak_vaf_cutoff_for_mutburden_analysis)%>%
-  ggplot(aes(x=get(SNV_metric_for_mutburden_analysis)))+
-  geom_histogram()+
-  facet_grid(Time_point~new_ID)
 
 #Print table of average burdens pre & post
 sample_metadata%>%
@@ -857,6 +870,7 @@ ggsave(filename=paste0(plots_dir,"SVs_per_colony.pdf"),SVs_per_colony,width=2.8,
 ##########################################################################
 ###----------------------------DRIVER MUTATION LANDSCAPE---------------
 ##########################################################################
+
 annotated_driver_mut_set=read_csv(paste0(root_dir,"/Data/Possible_drivers_annotated.csv"))#[,c("mut_ref","Gene","variant_ID","Decision")]
 
 all.res_df<-Map(tree=all.trees.cc.nodups,details=all.muts.nodups,function(tree,details) {
@@ -910,7 +924,6 @@ driver_proportion_combined_plot<-prop_drivers_df%>%
 
 ggsave(filename = paste0(plots_dir,"driver_proportion_combined_plot.pdf"),driver_proportion_combined_plot,width=2,height=2)
 
-
 bind_rows(all.res_df)%>%
   filter(!is.na(driver_ids))%>%
   left_join(sample_metadata)
@@ -937,7 +950,7 @@ fisher.test(matrix(c(1160,1431,1,11),nrow=2))
 ##---------------------------DNDSCV ANALYSIS---------------------------
 #######################################################################
 
-library(dndscv)
+#Define dunction to apply dndscv to the 'details' data objects used
 dndscv_on_details=function(details,id="this_sample",outp=1,max_muts_per_gene_per_sample = Inf,use_indel_sites=T,max_coding_muts_per_sample = Inf,...) {
   require(dndscv)
   if(!"sampleID"%in%colnames(details)) {
@@ -949,9 +962,12 @@ dndscv_on_details=function(details,id="this_sample",outp=1,max_muts_per_gene_per
   dndscvout=dndscv(muts,outp=outp,max_muts_per_gene_per_sample = max_muts_per_gene_per_sample,use_indel_sites=use_indel_sites,min_indels=2,max_coding_muts_per_sample = max_coding_muts_per_sample,...)
   return(dndscvout)
 }
+
+#Define clearer names for the mutation types
 mutation_type_vec=c("All","Missense","Nonsense","Splice site","Truncating")
 names(mutation_type_vec)=c("wall","wmis","wnon","wspl","wtru")
 
+#Apply dndscv to each individual separately & plot
 all.dndscv=Map(details=all.muts.nodups,exp_ID=names(all.muts.nodups),function(details,exp_ID) {cat(exp_ID,sep="\n");dndscv_on_details(details%>%mutate(sampleID=exp_ID))})
 Individual_dNdS_plot<-Map(outp=all.dndscv,exp_ID=names(all.dndscv),function(outp,exp_ID) outp$globaldnds%>%mutate(exp_ID=exp_ID))%>%
   bind_rows()%>%
@@ -969,6 +985,7 @@ Individual_dNdS_plot<-Map(outp=all.dndscv,exp_ID=names(all.dndscv),function(outp
 
 ggsave(filename = paste0(plots_dir,"Individual_dNdS_plot.pdf"),Individual_dNdS_plot,width=3,height=2)
 
+#Apply dndscv to combined dataset and plot
 combined.dndscv=dndscv_on_details(dplyr::bind_rows(Map(details=all.muts.nodups,exp_ID=names(all.muts.nodups),function(details,exp_ID) details%>%mutate(sampleID=exp_ID))),outp=3)
 combined_dNdS_plot<-combined.dndscv$globaldnds%>%
   mutate(name=mutation_type_vec[name])%>%

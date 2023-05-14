@@ -1,7 +1,62 @@
-#!/software/R-4.1.0/bin/Rscript
 #Engrafting clones inference
-library(dplyr)
-library(stringr)
+
+#----------------------------------
+# Load packages (and install if they are not installed yet)
+#----------------------------------
+cran_packages=c("ggplot2","dplyr","stringr","ggridges","tidyr","RColorBrewer","ape")
+
+for(package in cran_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    install.packages(as.character(package),repos = "http://cran.us.r-project.org")
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+
+#----------------------------------
+# Set the ggplot2 theme for plotting
+#----------------------------------
+
+my_theme<-theme(text = element_text(family="Helvetica"),
+                axis.text = element_text(size = 5),
+                axis.title = element_text(size=7),
+                legend.text = element_text(size=5),
+                legend.title = element_text(size=7),
+                strip.text = element_text(size=7),
+                legend.spacing = unit(1,"mm"),
+                legend.key.size= unit(5,"mm"))
+
+#----------------------------------
+# Set file paths and import data
+#----------------------------------
+
+ref_genome <- "BSgenome.Hsapiens.UCSC.hg19"
+genes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+
+#Define paths for the script
+root_dir<-"~/R_work/Gene_therapy/Gene_therapy_for_SCD_NEJM"
+source(paste0(root_dir,"/Data/GT_functions.R"))
+plots_dir=paste0(root_dir,"/plots/")
+
+#Manually enter the individual-level metadata data frame
+exp_IDs<-c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009")
+Individual_metadata=data.frame(ID=exp_IDs,
+                               new_ID=c("SCD4","SCD6","SCD5","SCD3","SCD1","SCD2"),
+                               Disease=rep("SCD",6),
+                               Age_at_GT=c(20,26,24,16,7,13),
+                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"))
+
+setwd(root_dir)
+sample_metadata<-read.delim(paste0(root_dir,"/Data/sample_metadata_full.tsv"),stringsAsFactors = F)
+all_tree_data=readRDS(paste0(root_dir,"/Data/combined_tree_files.Rds"))
+all_mut_data=readRDS(paste0(root_dir,"/Data/combined_muts_files.Rds"))
+
+#Extract objects from these lists in a 'for' loop
+for(x in names(all_tree_data)) {assign(x,all_tree_data[[x]])}
+for(x in names(all_mut_data)) {assign(x,all_mut_data[[x]])}
+
+#Set the colour scheme for when colour by patient
+patient_cols<-RColorBrewer::brewer.pal(7,"Set1")[c(1:5,7)]
+names(patient_cols)<-paste0("SCD",1:6)
 
 #Summary stats data.frame
 data_stats=data.frame(ID=c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009"),
@@ -11,37 +66,39 @@ data_stats=data.frame(ID=c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009"
 get_expanded_clade_nodes(all.trees.cc.nodups$BCL009,height_cut_off = 300,min_clonal_fraction = 0,min_samples = 2)
 sample_metadata%>%dplyr::filter(sample_status=="PASS")%>%group_by(ID,Time_point>0)%>%dplyr::summarise(n=n())%>%filter(`Time_point > 0`)
 
-#Pair metadata
-#Manually enter the individual-level metadata data frame
-exp_IDs<-c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009")
-Individual_metadata=data.frame(ID=exp_IDs,
-                               new_ID=c("SCD4","SCD6","SCD5","SCD3","SCD1","SCD2"),
-                               Disease=rep("SCD",6),
-                               Age_at_GT=c(20,26,24,16,7,13),
-                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"),
-                               CD34_dose=c(5.07,6.7,5.15,8.26,4.86,3.55))
+#----------------------------------
+# Simulate the anticipated clone size distributions from different engrafting cell numbers
+#----------------------------------
 
-## function to simply generate clone sizes from a birth process (much quicker than using RSimpop!!)
-# generate_clone_sizes=function(n_engrafted,n_final){
-#   cat(paste("Generating clone size information with",n_engrafted,"engrafting clones, and a final population of",n_final,"\n"))
-#   clone_sizes=rep(1,n_engrafted) #all clones start with a population of 1
-#   for(i in 1:(n_final-n_engrafted)){i=sample(x=n_engrafted,size=1,prob=clone_sizes);clone_sizes[i]<-clone_sizes[i]+1} # increment the population by 1 u
-#   return(data.frame(clone=1:n_engrafted,size=clone_sizes))
-# }
-# all_n_engrafted=round(2^(seq(10,16.6,0.1)))
-# all_n_final=c(1e5,2e5,5e5,1e6,2e6)
-# clone_params_df=tidyr::expand_grid(all_n_engrafted,all_n_final)%>%dplyr::rename("n_engrafted"=all_n_engrafted,"final_population"=all_n_final)
-# temp=lapply(1:nrow(clone_params_df),function(i) {
-#   cat(i,sep="\n")
-#   file_name=paste0("Clone_sizes_",clone_params_df$n_engrafted[i],"_",clone_params_df$final_population[i],".tsv")
-#   if(!file.exists(file_name)){
-#     clone_sizes=generate_clone_sizes(n_engrafted = clone_params_df$n_engrafted[i],n_final = clone_params_df$final_population[i])
-#     write.table(clone_sizes,file=file_name,quote=F,sep="\t",row.names=F)
-#   }
-# })
+regenerate_clone_sizes=F
+if(regenerate_clone_sizes) {
+  
+  clone_size_dir=paste0(root_dir,"/Data/Engrafting_cell_inference/Clone_sizes")
+  
+  # function to simply generate clone sizes from a birth process (much quicker than using RSimpop!!)
+  generate_clone_sizes=function(n_engrafted,n_final){
+    cat(paste("Generating clone size information with",n_engrafted,"engrafting clones, and a final population of",n_final,"\n"))
+    clone_sizes=rep(1,n_engrafted) #all clones start with a population of 1
+    for(i in 1:(n_final-n_engrafted)){i=sample(x=n_engrafted,size=1,prob=clone_sizes);clone_sizes[i]<-clone_sizes[i]+1} # increment the population by 1 u
+    return(data.frame(clone=1:n_engrafted,size=clone_sizes))
+  }
+  all_n_engrafted=round(2^(seq(10,16.6,0.1)))
+  all_n_final=c(1e5,2e5,5e5,1e6,2e6)
+  clone_params_df=tidyr::expand_grid(all_n_engrafted,all_n_final)%>%dplyr::rename("n_engrafted"=all_n_engrafted,"final_population"=all_n_final)
+  temp=lapply(1:nrow(clone_params_df),function(i) {
+    cat(i,sep="\n")
+    file_name=paste0(clone_size_dir,"/Clone_sizes_",clone_params_df$n_engrafted[i],"_",clone_params_df$final_population[i],".tsv")
+    if(!file.exists(file_name)){
+      clone_sizes=generate_clone_sizes(n_engrafted = clone_params_df$n_engrafted[i],n_final = clone_params_df$final_population[i])
+      write.table(clone_sizes,file=file_name,quote=F,sep="\t",row.names=F)
+    }
+  })
+}
 
-##--------------------------Import the clone sizes data frames--------------------------
-#clone_size_dir="/lustre/scratch119/realdata/mdt1/team154/ms56/gene_therapy/clone_size_distributions3"
+#----------------------------------
+# Import the clone sizes data frames
+#----------------------------------
+
 clone_size_dir=paste0(root_dir,"/Data/Engrafting_cell_inference/Clone_sizes")
 setwd(clone_size_dir)
 clone_files=list.files(pattern="Clone_sizes_")
@@ -57,9 +114,9 @@ clone_params_df<-lapply(clone_files,function(file){
 })%>%dplyr::bind_rows()
 names(clone_sizes_list)=apply(clone_params_df,1,paste,collapse="_")
 
-#clone_params_df<-clone_params_df%>%filter(final_population>5e4)
-
-##--------------------------Run the simulations & get posteriors--------------------------
+#----------------------------------
+# Run the simulations (using the clone sizes) & get posteriors
+#----------------------------------
 
 sim_res_dir=paste0(root_dir,"/Data/Engrafting_cell_inference/Simulation_results/")
 for(j in 1:nrow(data_stats)){
@@ -122,19 +179,9 @@ for(j in 1:nrow(data_stats)){
 }
 
 
-
-##--------------------------Plot the results--------------------------
-library(ggplot2)
-library(dplyr)
-
-my_theme<-theme(text = element_text(family="Helvetica"),
-                axis.text = element_text(size = 5),
-                axis.title = element_text(size=7),
-                legend.text = element_text(size=5),
-                legend.title = element_text(size=7),
-                strip.text = element_text(size=7),
-                legend.spacing = unit(1,"mm"),
-                legend.key.size= unit(5,"mm"))
+#----------------------------------
+# Plot the results
+#----------------------------------
 
 res_df<-Map(ID_to_run=data_stats$ID,no_of_coalescences=data_stats$no_of_coalescences,f=function(ID_to_run,no_of_coalescences) {
   sim_res_file=paste0(sim_res_dir,"sim_res_",ID_to_run,".RDS")
@@ -255,7 +302,11 @@ lme.CD34<-lme4::lmer(post~CD34_dose+(1|new_ID),data=all_post_samples%>%
 summary(lme.CD34)
 confint(lme.CD34)
 
-##Read in the estimates done using VCN
+#----------------------------------
+# Compare results from our data to those obtained using vector integration site analysis
+#----------------------------------
+
+##Read in the estimates done using VIS analysis
 VCN_estimates<-readxl::read_excel(paste0(root_dir,"/Data/SCDEstimatedTotalHSCpop_tidy.xlsx"))
 VCN_estimates<-VCN_estimates%>%left_join(Individual_metadata,by=c("pt"="ID"))%>%
   dplyr::mutate(lower_CI=estimate-1.96*se,upper_CI=estimate+1.96*se)%>%
@@ -279,7 +330,6 @@ phylo_estimates_vs_VIS_estimates<-all_post_samples%>%
 ggsave(filename=paste0(plots_dir,"phylo_estimates_vs_VIS_estimates.pdf"),phylo_estimates_vs_VIS_estimates,width=6,height=2)
 
 #Visualize posterior as density
-library(ggridges)
 engrafting_cell_inference_posterior_density_plot<-all_post_samples%>%
   ggplot(aes(x=post,y=new_ID,fill=new_ID))+
   ggridges::geom_density_ridges2(scale=4)+

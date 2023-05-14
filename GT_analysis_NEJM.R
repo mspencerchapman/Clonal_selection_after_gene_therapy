@@ -1,14 +1,39 @@
-#Define custom functions for the script
-reference_dir="~/Google Drive/My Drive/Reference_files/"
-local_ref=paste0(reference_dir,"genome.fa")
-lustre_ref="/nfs/cancer_ref02/human/GRCh37d5/genome.fa"
+#----------------------------------
+# Load packages (and install if they are not installed yet)
+#----------------------------------
+cran_packages=c("ggplot2","dplyr","stringr","readr","tidyr","RColorBrewer","tibble","ape","phangorn","phytools","dichromat","seqinr","devtools","lmerTest")
+bioconductor_packages=c("MutationalPatterns","BSgenome","BSgenome.Hsapiens.UCSC.hg19","TxDb.Hsapiens.UCSC.hg19.knownGene")
 
-library(ape)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(readr)
-library(phytools)
+for(package in cran_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    install.packages(as.character(package),repos = "http://cran.us.r-project.org")
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+if (!require("BiocManager", quietly = T, warn.conflicts = F))
+  install.packages("BiocManager")
+for(package in bioconductor_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    BiocManager::install(as.character(package))
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+if(!require("treemut", character.only=T,quietly = T, warn.conflicts = F)){
+  install_git("https://github.com/NickWilliamsSanger/treemut")
+  library("treemut",character.only=T,quietly = T, warn.conflicts = F)
+}
+if(!require("hdp", character.only=T,quietly = T, warn.conflicts = F)){
+  devtools::install_github("nicolaroberts/hdp", build_vignettes = F)
+  library("hdp",character.only=T,quietly = T, warn.conflicts = F)
+}
+if(!require("dndscv", character.only=T,quietly = T, warn.conflicts = F)){
+  devtools::install_github("im3sanger/dndscv")
+  library("dndscv",character.only=T,quietly = T, warn.conflicts = F)
+}
+
+#----------------------------------
+# Set the ggplot2 theme for plotting
+#----------------------------------
 
 my_theme<-theme(text = element_text(family="Helvetica"),
                 axis.text = element_text(size = 5),
@@ -19,15 +44,19 @@ my_theme<-theme(text = element_text(family="Helvetica"),
                 legend.spacing = unit(1,"mm"),
                 legend.key.size= unit(5,"mm"))
 
-root_dir<-"~/R_work/Gene_therapy/Gene_therapy_for_SCD_NEJM"
-R_functions_dir=ifelse(Sys.info()["sysname"] == "Darwin","~/R_work/my_functions","/lustre/scratch119/casm/team154pc/ms56/my_functions")
-tree_mut_dir=ifelse(Sys.info()["sysname"] == "Darwin","~/R_work/treemut","/lustre/scratch119/casm/team154pc/ms56/fetal_HSC/treemut")
-R_function_files=list.files(R_functions_dir,pattern=".R",full.names = T)
-sapply(R_function_files[-2],source)
+#----------------------------------
+# Set file paths and import data
+#----------------------------------
+
+#Define paths for the script
+root_dir<-"~/R_work/Clonal_selection_after_gene_therapy/"
 source(paste0(root_dir,"/Data/GT_functions.R"))
-setwd(tree_mut_dir); source("treemut.R");setwd(root_dir)
+reference_dir="~/Google Drive File Stream/My Drive/Reference_files/"
 vcf_header_path=paste0(reference_dir,"vcfHeader.txt")
 plots_dir=paste0(root_dir,"/plots/")
+local_ref=paste0(reference_dir,"genome.fa")
+lustre_ref="/nfs/cancer_ref02/human/GRCh37d5/genome.fa"
+vcf_dir=paste0(root_dir,"/Data/VCFs/")
 
 #Manually enter the individual-level metadata data frame
 exp_IDs<-c("BCL002","BCL003","BCL004","BCL006","BCL008","BCL009")
@@ -35,12 +64,25 @@ Individual_metadata=data.frame(ID=exp_IDs,
                                new_ID=c("SCD4","SCD6","SCD5","SCD3","SCD1","SCD2"),
                                Disease=rep("SCD",6),
                                Age_at_GT=c(20,26,24,16,7,13),
-                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"),
-                               CD34_dose=c(5.07,NA,5.15,8.26,4.86,3.55))
+                               PD_no=c("PD49229","PD53373b","PD49228","PD53374b","PD49227","PD49226"))
 
-#Set the patient colour scheme
+setwd(root_dir)
+#sample_metadata<-read_delim(paste0(root_dir,"/Data/sample_metadata_full.tsv"))
+#sample_metadata<-readRDS(paste0(root_dir,"/Data/sample_metadata_full_with_sigs.Rds"))
+#all_tree_data=readRDS(paste0(root_dir,"/Data/combined_tree_files.Rds"))
+#all_mut_data=readRDS(paste0(root_dir,"/Data/combined_muts_files.Rds"))
+
+# #Extract objects from these lists in a 'for' loop
+# for(x in names(all_tree_data)) {assign(x,all_tree_data[[x]])}
+# for(x in names(all_mut_data)) {assign(x,all_mut_data[[x]])}
+
+#Set the colour scheme for when colour by patient
 patient_cols<-RColorBrewer::brewer.pal(7,"Set1")[c(1:5,7)]
 names(patient_cols)<-paste0("SCD",1:6)
+
+##########################################################################
+###----------------------------START MAIN ANALYSIS--------------------
+##########################################################################
 
 tree_folder=paste0(root_dir,"/Data/tree_files_with_dups/")
 annotated_muts_folder=paste0(root_dir,"/Data/annot_files_with_dups/")

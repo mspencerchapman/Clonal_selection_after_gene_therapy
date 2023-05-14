@@ -1,16 +1,36 @@
 #Script to run "rtreefit" on the farm
-#This is a SLOOOW mcmc approach, so hence run on the compute farm
-#RTREEGIT
-library(ape)
-library(dplyr)
-library(tidyr)
-library(rtreefit)
+#This is a SLOOOW mcmc approach, so best to run on the compute farm
+
+#----------------------------------
+# Load packages (and install if they are not installed yet)
+#----------------------------------
+
+cran_packages=c("ape","dplyr","tidyr")
+for(package in cran_packages){
+  if(!require(package, character.only=T,quietly = T, warn.conflicts = F)){
+    install.packages(as.character(package),repos = "http://cran.us.r-project.org")
+    library(package, character.only=T,quietly = T, warn.conflicts = F)
+  }
+}
+
+if(!require("rtreefit", character.only=T,quietly = T, warn.conflicts = F)){
+  install_git("https://github.com/NickWilliamsSanger/rtreefit")
+  library("rtreefit",character.only=T,quietly = T, warn.conflicts = F)
+}
+
+#----------------------------------
+# Set file paths and import data
+#----------------------------------
 
 all_tree_data_path="combined_tree_files.Rds"
 metadata_path="sample_metadata_full_with_sigs.Rds"
 
 all_tree_data=readRDS(all_tree_data_path)
 sample_metadata<-readRDS(metadata_path)
+
+#----------------------------------
+# Get version of tree for rtreefit
+#----------------------------------
 
 all.trees.age.nodups<-Map(tree=all_tree_data$all.trees.cc.nodups,this_ID=names(all_tree_data$all.trees.cc.nodups),function(tree,this_ID) {
   cat(this_ID,sep="\n")
